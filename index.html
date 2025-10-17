@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Калькулятор водоочистки v2.0 (Standalone)</title>
+  <title>Калькулятор водоочистки v2.1 (Standalone)</title>
   <meta name="theme-color" content="#0b1020"/>
   <style>
     :root{--bg:#0b1020;--fg:#e5e7eb;--muted:#9ca3af;--card:#111a2d;--border:#1f2a44;--accent:#38bdf8}
@@ -42,7 +42,7 @@
     <div class="header">
       <div class="brand">
         <svg class="logo" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#0b1020"/><path d="M32 8c8 10 16 18 16 28a16 16 0 1 1-32 0c0-10 8-18 16-28z" fill="var(--accent)"/></svg>
-        <h1>Калькулятор водоочистки v2.0</h1>
+        <h1>Калькулятор водоочистки v2.1</h1>
       </div>
       <div>
         <button id="themeBtn">Тёмная</button>
@@ -65,16 +65,20 @@
       <label class="row"><span>Заполняемость (доля)</span><input id="occ" type="number" min="0.1" max="1" step="0.01" value="0.95"></label>
       <label class="row"><span>Коэф. часового пика KH</span><input id="kh" type="number" min="1" step="0.05" value="2.2"></label>
       <label class="row"><span>Коэф. страховой KS</span><input id="ks" type="number" min="1" step="0.01" value="1.15"></label>
-      <label class="row"><span>Производ-ть одного NF-модуля, м³/ч</span><input id="nfmod" type="number" min="0.1" step="0.1" value="1"></label>
+      <label class="row"><span>Произв. одного NF-модуля, м³/ч</span><input id="nfmod" type="number" min="0.1" step="0.1" value="1"></label>
       <label class="row"><span>N+1 для УФ/насосов</span><input id="nplus" type="checkbox" checked></label>
-      <label class="row">
-        <span>Инфляция (сценарий)</span>
+      <label class="row"><span>Инфляция (сценарий)</span>
         <select id="inflation">
           <option value="baseline" selected>Базовый</option>
           <option value="optimistic">Оптимистичный</option>
           <option value="conservative">Консервативный</option>
         </select>
       </label>
+      <hr>
+      <div class="h2">Резервуар (1 шт)</div>
+      <label class="row"><span>Резерв воды, часов</span><input id="resHrs" type="number" min="1" step="1" value="8"></label>
+      <label class="row"><span>Коэф. резерва (надёжность)</span><input id="resK" type="number" min="1" step="0.05" value="1.2"></label>
+      <label class="row"><span>Высота для прямоуг., м</span><input id="rectH" type="number" min="1.5" step="0.1" value="2.5"></label>
     </section>
 
     <section class="card">
@@ -82,10 +86,14 @@
       <div class="grid">
         <div class="tile"><div class="label">Мощность, м³/ч</div><div class="value" id="m3h">—</div></div>
         <div class="tile"><div class="label">Мощность, л/ч</div><div class="value" id="lph">—</div></div>
-        <div class="tile"><div class="label">Площадь, м²</div><div class="value" id="area">—</div></div>
+        <div class="tile"><div class="label">Площадь станции, м²</div><div class="value" id="area">—</div></div>
         <div class="tile"><div class="label">Нерж. трубы, м</div><div class="value" id="inox">—</div></div>
         <div class="tile"><div class="label">PEX-a трубы, м</div><div class="value" id="pex">—</div></div>
         <div class="tile span"><div class="label">Часы работ (оценка)</div><div class="value" id="labor">—</div></div>
+
+        <div class="tile"><div class="label">Объём резервуара, м³</div><div class="value" id="vTank">—</div></div>
+        <div class="tile"><div class="label">Цилиндр (D × H), м</div><div class="value" id="cylDims">—</div></div>
+        <div class="tile"><div class="label">Прямоуг. (Ш × Д × В), м</div><div class="value" id="rectDims">—</div></div>
       </div>
     </section>
 
@@ -101,7 +109,7 @@
         <button id="copyBtn">Скопировать ссылку</button>
         <button id="resetBtn">Сброс</button>
       </div>
-      <div class="note">Инфляция — сценарная (базовый/оптимистичный/консервативный). При желании добавим загрузку из файла.</div>
+      <div class="note">Инфляция — сценарная (базовый/оптимистичный/консервативный).</div>
     </section>
 
     <section class="card">
@@ -116,14 +124,12 @@
     <section class="card">
       <div class="h2">Состав оборудования (шт)</div>
       <table>
-        <thead><tr><th>Позиция</th><th>Количество</th></tr></thead>
-        <tbody id="bom">
-          <!-- наполняется скриптом -->
-        </tbody>
+        <thead><tr><th>Позиция</th><th>Количество / Примечания</th></tr></thead>
+        <tbody id="bom"></tbody>
       </table>
     </section>
 
-    <div class="note">v2.0 • современный минимализм • тёмная тема • автономный файл без внешних библиотек • NF по умолчанию</div>
+    <div class="note">v2.1 • один файл • NF по умолчанию • встроенный расчёт резервуара</div>
   </div>
 
   <script>
@@ -150,6 +156,11 @@
       nfmod: +(localStorage.getItem('nfmod')||1),
       nplus: (localStorage.getItem('nplus')!=='false'),
       inflation: (localStorage.getItem('inflation')||'baseline'),
+      // резервуар
+      resHrs: +(localStorage.getItem('resHrs')||8),
+      resK: +(localStorage.getItem('resK')||1.2),
+      rectH: +(localStorage.getItem('rectH')||2.5),
+
       suppliers: [
         {id:'ecvols',name:'Ecvols'}, {id:'clinvo',name:'Clinvo'}, {id:'gf',name:'GF-Shop'},
         {id:'inox',name:'InoxPoint'}, {id:'stout',name:'Stout'}, {id:'other',name:'Другой'}
@@ -161,7 +172,8 @@
         {key:'pump',label:'Насос',price:283929,supplier:'gf'},
         {key:'carbon',label:'Колонна с углём',price:117720,supplier:'other'},
         {key:'mineral',label:'Минерализатор',price:80000,supplier:'other'},
-        {key:'tank',label:'Емкость 5 м³',price:120000,supplier:'other'},
+        // Было: фикс «Емкость 5 м³». Теперь: цена за 1 м³, чтобы считать одну большую.
+        {key:'tank_m3',label:'Емкость (₽/м³)',price:24000,supplier:'other'},
         {key:'inox',label:'Трубопровод нерж (м)',price:1105,supplier:'inox'},
         {key:'pex',label:'Трубопровод PEX-a (м)',price:399,supplier:'stout'},
         {key:'plc',label:'ПЛК + датчики',price:250000,supplier:'other'},
@@ -169,7 +181,7 @@
         {key:'room',label:'Работы по помещению, ₽/м²',price:8000,supplier:'other'},
         {key:'design',label:'Проект + согласования',price:400000,supplier:'other'},
       ],
-      fixed:{tanks:2, inoxM_base:400, pexM_base:1600},
+      fixed:{ /* резервуар теперь 1 шт динамического объёма */ },
       roomModel:{baseArea:12, perNF:3.5, serviceCorridor:10, extraPer10m3h:4},
       pipesModel:{inoxPerM2:1.5, pexPerM2:3.0},
       laborModel:{baseHours:120, perUnitHours:6, perM2Hours:0.8, hourlyRate:1200},
@@ -193,6 +205,11 @@
     $('#nfmod').value = state.nfmod;
     $('#nplus').checked = state.nplus;
     $('#inflation').value = state.inflation;
+
+    // Резервуар
+    $('#resHrs').value = state.resHrs;
+    $('#resK').value = state.resK;
+    $('#rectH').value = state.rectH;
 
     // Поставщики-таблица
     const tbody = document.querySelector('#priceTable tbody');
@@ -219,15 +236,15 @@
 
     // ======= ЛОГИКА РАСЧЁТА =======
     function persist(){
-      localStorage.setItem('theme', state.theme);
-      localStorage.setItem('tech', state.tech);
-      ['apts','pplPerApt','lpd','occ','kh','ks','nfmod','nplus','inflation'].forEach(k=>{
+      ['theme','tech','apts','pplPerApt','lpd','occ','kh','ks','nfmod','nplus','inflation','resHrs','resK','rectH'].forEach(k=>{
         localStorage.setItem(k, state[k]);
       });
     }
 
     function recalc(){
       const profile = TECH[state.tech] || TECH.NF;
+
+      // Потребление и мощность
       const population = state.apts * state.pplPerApt * state.occ;
       const m3PerDay = population * state.lpd / 1000;
       const m3PerHourAvg = m3PerDay / 24;
@@ -235,6 +252,7 @@
       const requiredM3h = m3PerHourPeak * state.ks;
       const lPerHour = requiredM3h * 1000;
 
+      // Оборудование
       const ceil = x => Math.ceil(x);
       const nfCount = ceil(requiredM3h / Math.max(1, state.nfmod));
       const ufCount = ceil(requiredM3h / 10);
@@ -244,18 +262,31 @@
       const pumpCount = state.nplus ? Math.max(2, pumpRaw) : pumpRaw;
       const carbonCount = ceil(requiredM3h / 2);
 
+      // Площадь/трубы/работы
       const area = state.roomModel.baseArea + state.roomModel.perNF*nfCount + state.roomModel.serviceCorridor + state.roomModel.extraPer10m3h*(requiredM3h/10);
-      const inoxM = state.fixed.inoxM_base + state.pipesModel.inoxPerM2*area;
-      const pexM  = state.fixed.pexM_base  + state.pipesModel.pexPerM2*area;
-
+      const inoxM = (state.pipesModel.inoxPerM2*area);
+      const pexM  = (state.pipesModel.pexPerM2*area);
       const laborHours = state.laborModel.baseHours + state.laborModel.perUnitHours*(nfCount+ufCount+uvCount+pumpCount+carbonCount) + state.laborModel.perM2Hours*area;
       const laborCost = laborHours * state.laborModel.hourlyRate;
 
+      // Резервуар (1 шт): V = среднечасовой × часы резерва × Kрезерва
+      const vTank = m3PerHourAvg * state.resHrs * state.resK; // м³
+      // Габариты: цилиндр H=2D => V = (π/2) D^3 => D = (2V/π)^(1/3), H=2D
+      const D = Math.cbrt((2*vTank)/Math.PI);
+      const H = 2*D;
+      // Прямоугольник: задаём высоту, сторона квадратная в плане
+      const rectH = Math.max(1.5, state.rectH||2.5);
+      const rectSide = Math.sqrt(vTank / rectH); // Ш = Д
+      // Стоимость резервуара: цена за 1 м³ (редактируется в таблице)
       const price = Object.fromEntries(state.items.map(i=>[i.key,i.price]));
-      const capex = price.nf*nfCount + price.uf*ufCount + price.uv*uvCount + price.pump*pumpCount + price.carbon*carbonCount +
-                    price.mineral*1 + price.tank*state.fixed.tanks + price.inox*inoxM + price.pex*pexM +
-                    price.plc*1 + price.install*1 + price.room*area + price.design*1 + laborCost;
+      const tankCost = vTank * (price.tank_m3||24000);
 
+      // CAPEX
+      const capex = (price.nf*nfCount + price.uf*ufCount + price.uv*uvCount + price.pump*pumpCount + price.carbon*carbonCount +
+                    price.mineral*1 + tankCost + price.inox*inoxM + price.pex*pexM +
+                    price.plc*1 + price.install*1 + price.room*area + price.design*1 + laborCost);
+
+      // OPEX
       const annualM3 = requiredM3h * 24 * 365 * state.opx.loadFactor;
       const energyKwh = profile.kwhPerM3 * annualM3;
       const energyCost = energyKwh * state.opx.tariffRurPerKwh;
@@ -280,6 +311,11 @@
       $('#inox').textContent = fmtInt(inoxM);
       $('#pex').textContent  = fmtInt(pexM);
       $('#labor').textContent= fmtInt(laborHours);
+
+      $('#vTank').textContent = (vTank||0).toFixed(2);
+      $('#cylDims').textContent = `${(D||0).toFixed(2)} × ${(H||0).toFixed(2)}`;
+      $('#rectDims').textContent = `${(rectSide||0).toFixed(2)} × ${(rectSide||0).toFixed(2)} × ${rectH.toFixed(2)}`;
+
       $('#capex').textContent= fmtRub(capex);
       $('#opex5').textContent= fmtRub(opex5y);
       $('#tco5').textContent = fmtRub(capex + opex5y);
@@ -293,7 +329,7 @@
       addRow('УФ установки (~10 м³/ч)', uvCount);
       addRow('Насосы (~10 м³/ч)', pumpCount);
       addRow('Колонны с углём (~2 м³/ч)', carbonCount);
-      addRow('Емкости 5 м³ (шт)', state.fixed.tanks);
+      addRow('Резервуар', `1 шт, ${(vTank||0).toFixed(2)} м³`);
     }
 
     // ======= СЛУШАТЕЛИ =======
@@ -306,11 +342,13 @@
     $('#btnNF').addEventListener('click', ()=>{ state.tech='NF'; $('#btnNF').classList.add('primary'); $('#btnRO').classList.remove('primary'); persist(); recalc(); });
     $('#btnRO').addEventListener('click', ()=>{ state.tech='RO'; $('#btnRO').classList.add('primary'); $('#btnNF').classList.remove('primary'); persist(); recalc(); });
 
-    ['apts','pplPerApt','lpd','occ','kh','ks','nfmod'].forEach(id=>{
+    ['apts','pplPerApt','lpd','occ','kh','ks','nfmod','resHrs','resK','rectH'].forEach(id=>{
       const el = document.getElementById(id);
       el.addEventListener('input', ()=>{
         let v = parseFloat(el.value||'0');
         if (id==='occ') v = clamp(v,0.1,1);
+        if (id==='resK') v = Math.max(1, v||1);
+        if (id==='rectH') v = Math.max(1.5, v||2.5);
         state[id] = v;
         persist(); recalc();
       });
@@ -320,12 +358,13 @@
 
     $('#printBtn').addEventListener('click', ()=> window.print());
     $('#copyBtn').addEventListener('click', ()=>{
-      const sp = new URLSearchParams({apts:state.apts,ppl:state.pplPerApt,lpd:state.lpd,occ:state.occ,kh:state.kh,ks:state.ks,nfmod:state.nfmod,tech:state.tech,infl:state.inflation,theme:state.theme});
+      const sp = new URLSearchParams({
+        apts:state.apts,ppl:state.pplPerApt,lpd:state.lpd,occ:state.occ,kh:state.kh,ks:state.ks,nfmod:state.nfmod,
+        tech:state.tech,infl:state.inflation,theme:state.theme,resHrs:state.resHrs,resK:state.resK,rectH:state.rectH
+      });
       navigator.clipboard.writeText(location.origin+location.pathname+'?'+sp.toString());
     });
-    $('#resetBtn').addEventListener('click', ()=>{
-      localStorage.clear(); location.reload();
-    });
+    $('#resetBtn').addEventListener('click', ()=>{ localStorage.clear(); location.reload(); });
 
     // Старт
     recalc();
