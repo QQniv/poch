@@ -1,26 +1,25 @@
 <!doctype html>
 <html lang="ru" data-theme="dark">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Калькулятор водоочистки v2.0</title>
-  <meta name="theme-color" content="#0b1020">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Калькулятор водоочистки v2.0 (Standalone)</title>
+  <meta name="theme-color" content="#0b1020"/>
   <style>
     :root{--bg:#0b1020;--fg:#e5e7eb;--muted:#9ca3af;--card:#111a2d;--border:#1f2a44;--accent:#38bdf8}
     [data-theme='light']{--bg:#ffffff;--fg:#0b1020;--muted:#6b7280;--card:#f8fafc;--border:#e5e7eb;--accent:#0ea5e9}
-    *{box-sizing:border-box}
-    html,body{height:100%}
+    *{box-sizing:border-box} html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,Inter,Roboto,Segoe UI,Arial}
     .wrap{max-width:720px;margin:0 auto;padding:16px}
     .header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
     .brand{display:flex;align-items:center;gap:10px}
     .logo{width:28px;height:28px;display:block}
-    .h1{font-size:20px;font-weight:700;margin:0}
-    .switch{display:flex;align-items:center;gap:8px}
+    h1{font-size:20px;margin:0}
     .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.08);margin-bottom:12px}
     .h2{font-size:15px;font-weight:700;margin:0 0 8px}
     .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
-    .input, select{width:160px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--fg);text-align:right;font-size:14px}
+    input[type=number], select{width:160px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:transparent;color:var(--fg);text-align:right;font-size:14px}
+    input[type=checkbox]{transform:scale(1.2)}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .tile{border:1px solid var(--border);border-radius:12px;padding:12px;background:transparent}
     .tile .label{color:var(--muted);font-size:12px}
@@ -33,283 +32,303 @@
     th,td{font-size:12px;border-bottom:1px solid var(--border);padding:6px 4px}
     th{text-align:left;color:var(--muted)}
     .note{font-size:12px;color:var(--muted);margin-top:6px}
-    .hint{font-size:12px;color:var(--muted);margin-left:8px}
-    .row-inline{display:flex;align-items:center;gap:8px}
     .toggle{display:inline-flex;align-items:center;gap:8px}
-    .kbd{border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:11px;color:var(--muted)}
-    /* mobile tweaks */
-    @media (max-width:420px){
-      .grid{grid-template-columns:1fr}
-      .input, select{width:140px}
-      .h1{font-size:18px}
-    }
+    .hint{font-size:12px;color:var(--muted)}
+    @media (max-width:420px){ .grid{grid-template-columns:1fr} input[type=number], select{width:140px} h1{font-size:18px} }
   </style>
-  <!-- React UMD -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 </head>
 <body>
-  <div id="app"></div>
+  <div class="wrap">
+    <div class="header">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#0b1020"/><path d="M32 8c8 10 16 18 16 28a16 16 0 1 1-32 0c0-10 8-18 16-28z" fill="var(--accent)"/></svg>
+        <h1>Калькулятор водоочистки v2.0</h1>
+      </div>
+      <div>
+        <button id="themeBtn">Тёмная</button>
+      </div>
+    </div>
 
-<script>
-(function(){
-  const {useState,useEffect,useMemo} = React;
-  const fmtInt = (n)=> new Intl.NumberFormat('ru-RU').format(Math.round(n||0));
-  const fmt2 = (n)=> Number.isFinite(n)? n.toFixed(2): '0.00';
-  const fmtRub = (n)=> new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}).format(Math.round(n||0));
-  const clamp=(v,min,max)=> Math.min(max, Math.max(min, isFinite(v)?v:0));
-  const readParams = ()=> Object.fromEntries(new URLSearchParams(location.search).entries());
-  const pushParams = (obj)=> { const sp = new URLSearchParams(obj); history.replaceState(null,'','?'+sp.toString()); };
+    <section class="card">
+      <div class="h2">Быстрый ввод</div>
+      <div class="row">
+        <span>Технология</span>
+        <div class="toggle">
+          <button id="btnNF" class="primary">NF</button>
+          <button id="btnRO">RO</button>
+          <span class="hint">NF по умолчанию, RO — опционально</span>
+        </div>
+      </div>
+      <label class="row"><span>Квартиры, шт</span><input id="apts" type="number" min="1" step="1" value="500"></label>
+      <label class="row"><span>Людей на квартиру, чел</span><input id="pplPerApt" type="number" min="0.1" step="0.1" value="3"></label>
+      <label class="row"><span>Потребление на человека, л/сут</span><input id="lpd" type="number" min="1" step="1" value="180"></label>
+      <label class="row"><span>Заполняемость (доля)</span><input id="occ" type="number" min="0.1" max="1" step="0.01" value="0.95"></label>
+      <label class="row"><span>Коэф. часового пика KH</span><input id="kh" type="number" min="1" step="0.05" value="2.2"></label>
+      <label class="row"><span>Коэф. страховой KS</span><input id="ks" type="number" min="1" step="0.01" value="1.15"></label>
+      <label class="row"><span>Производ-ть одного NF-модуля, м³/ч</span><input id="nfmod" type="number" min="0.1" step="0.1" value="1"></label>
+      <label class="row"><span>N+1 для УФ/насосов</span><input id="nplus" type="checkbox" checked></label>
+      <label class="row">
+        <span>Инфляция (сценарий)</span>
+        <select id="inflation">
+          <option value="baseline" selected>Базовый</option>
+          <option value="optimistic">Оптимистичный</option>
+          <option value="conservative">Консервативный</option>
+        </select>
+      </label>
+    </section>
 
-  // Техпрофили (NF/RO). По умолчанию работаем с NF, но опция доступна отдельно.
-  const TECH = {
-    NF:{kwhPerM3:0.4, reagentsRurPerM3:0.4, nfMembranePrice:20000, nfMembraneFrac:1/3, recovery:0.85},
-    RO:{kwhPerM3:0.8, reagentsRurPerM3:0.6, nfMembranePrice:25000, nfMembraneFrac:0.5, recovery:0.7}
-  };
+    <section class="card">
+      <div class="h2">Результаты</div>
+      <div class="grid">
+        <div class="tile"><div class="label">Мощность, м³/ч</div><div class="value" id="m3h">—</div></div>
+        <div class="tile"><div class="label">Мощность, л/ч</div><div class="value" id="lph">—</div></div>
+        <div class="tile"><div class="label">Площадь, м²</div><div class="value" id="area">—</div></div>
+        <div class="tile"><div class="label">Нерж. трубы, м</div><div class="value" id="inox">—</div></div>
+        <div class="tile"><div class="label">PEX-a трубы, м</div><div class="value" id="pex">—</div></div>
+        <div class="tile span"><div class="label">Часы работ (оценка)</div><div class="value" id="labor">—</div></div>
+      </div>
+    </section>
 
-  const DEFAULTS = {
-    theme:'dark', tech:'NF',
-    apts:500, pplPerApt:3, lpdPerPerson:180,
-    occupancy:0.95, kh:2.2, ks:1.15, nfModuleM3h:1, nPlus1:true,
-    suppliers:[
-      {id:'ecvols',name:'Ecvols'}, {id:'clinvo',name:'Clinvo'}, {id:'gf',name:'GF-Shop'},
-      {id:'inox',name:'InoxPoint'}, {id:'stout',name:'Stout'}, {id:'other',name:'Другой'}
-    ],
-    items:[
-      {key:'nf',label:'НФ/RO‑установка',price:185450,supplier:'ecvols'},
-      {key:'uf',label:'UF‑блок',price:557977,supplier:'clinvo'},
-      {key:'uv',label:'УФ‑установка',price:76800,supplier:'other'},
-      {key:'pump',label:'Насос',price:283929,supplier:'gf'},
-      {key:'carbon',label:'Колонна с углём',price:117720,supplier:'other'},
-      {key:'mineral',label:'Минерализатор',price:80000,supplier:'other'},
-      {key:'tank',label:'Емкость 5 м³',price:120000,supplier:'other'},
-      {key:'inox',label:'Трубопровод нерж (м)',price:1105,supplier:'inox'},
-      {key:'pex',label:'Трубопровод PEX‑a (м)',price:399,supplier:'stout'},
-      {key:'plc',label:'ПЛК + датчики',price:250000,supplier:'other'},
-      {key:'install',label:'Монтаж/ПНР',price:850000,supplier:'other'},
-      {key:'room',label:'Работы по помещению, ₽/м²',price:8000,supplier:'other'},
-      {key:'design',label:'Проект + согласования',price:400000,supplier:'other'},
-    ],
-    fixed:{tanks:2, inoxM_base:400, pexM_base:1600},
-    roomModel:{baseArea:12, perNF:3.5, serviceCorridor:10, extraPer10m3h:4},
-    pipesModel:{inoxPerM2:1.5, pexPerM2:3.0},
-    laborModel:{baseHours:120, perUnitHours:6, perM2Hours:0.8, hourlyRate:1200},
-    opx:{loadFactor:0.35, inflation:'baseline', tariffRurPerKwh:7.0,
-         uvLampHours:9000, uvLampPrice:12000, uvLampsPerUnit:1, serviceY1:150000, unplannedPctY1:0.03},
-    inflationCurves:{baseline:[4.0,4.2,4.0,3.8,3.8], optimistic:[3.5,3.7,3.5,3.3,3.3], conservative:[5.0,5.0,4.8,4.5,4.3]}
-  };
+    <section class="card">
+      <div class="h2">Стоимость</div>
+      <div class="grid">
+        <div class="tile"><div class="label">CAPEX, ₽</div><div class="value" id="capex">—</div></div>
+        <div class="tile"><div class="label">OPEX 5 лет, ₽</div><div class="value" id="opex5">—</div></div>
+        <div class="tile span"><div class="label">TCO 5 лет, ₽</div><div class="value" id="tco5">—</div></div>
+      </div>
+      <div class="actions" style="margin-top:8px">
+        <button class="primary" id="printBtn">PDF/Печать</button>
+        <button id="copyBtn">Скопировать ссылку</button>
+        <button id="resetBtn">Сброс</button>
+      </div>
+      <div class="note">Инфляция — сценарная (базовый/оптимистичный/консервативный). При желании добавим загрузку из файла.</div>
+    </section>
 
-  const useSticky=(key,init)=>{
-    const [v,setV]=React.useState(()=>{
-      const p = readParams(); if(p[key]!==undefined){ try{return JSON.parse(p[key]);}catch{return p[key];} }
-      try{ const raw=localStorage.getItem('v20full:'+key); return raw? JSON.parse(raw): init; }catch{return init;}
-    });
-    React.useEffect(()=>{ try{localStorage.setItem('v20full:'+key, JSON.stringify(v));}catch{} },[key,v]);
-    return [v,setV];
-  };
+    <section class="card">
+      <div class="h2">Поставщики и цены</div>
+      <table id="priceTable">
+        <thead><tr><th>Позиция</th><th>Цена, ₽</th><th>Поставщик</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="note">Подставь реальные прайсы — расчёты обновятся мгновенно.</div>
+    </section>
 
-  function Theme({theme,setTheme}){
-    React.useEffect(()=>{ document.documentElement.setAttribute('data-theme', theme); },[theme]);
-    return React.createElement('div',{className:'switch'},
-      React.createElement('span',null,'Тема'),
-      React.createElement('button',{onClick:()=> setTheme(theme==='dark'?'light':'dark')}, theme==='dark'?'Тёмная':'Светлая')
-    );
-  }
-  function NumberInput({label,value,onChange,step=1,min=0,max=1e9}){
-    return React.createElement('label',{className:'row'},
-      React.createElement('span',null,label),
-      React.createElement('input',{className:'input',type:'number',step,value:Number.isFinite(value)?value:0,onChange:e=> onChange(clamp(parseFloat(e.target.value||'0'),min,max))})
-    );
-  }
-  function Select({label,value,onChange,options}){
-    return React.createElement('label',{className:'row'},
-      React.createElement('span',null,label),
-      React.createElement('select',{className:'input',value,onChange:e=> onChange(e.target.value)}, options.map(o=> React.createElement('option',{key:o.value,value:o.value},o.label)))
-    );
-  }
+    <section class="card">
+      <div class="h2">Состав оборудования (шт)</div>
+      <table>
+        <thead><tr><th>Позиция</th><th>Количество</th></tr></thead>
+        <tbody id="bom">
+          <!-- наполняется скриптом -->
+        </tbody>
+      </table>
+    </section>
 
-  function Suppliers({suppliers,setSuppliers,items,setItems}){
-    return React.createElement('section',{className:'card'},
-      React.createElement('div',{className:'h2'},'Поставщики и цены'),
-      React.createElement('table',null,
-        React.createElement('thead',null,React.createElement('tr',null,React.createElement('th',null,'Позиция'),React.createElement('th',null,'Цена, ₽'),React.createElement('th',null,'Поставщик'))),
-        React.createElement('tbody',null,
-          items.map((it,idx)=> React.createElement('tr',{key:it.key},
-            React.createElement('td',null,it.label),
-            React.createElement('td',null,React.createElement('input',{className:'input',type:'number',value:it.price,onChange:e=>{const a=[...items];a[idx]={...a[idx],price:parseFloat(e.target.value||'0')};setItems(a);}})),
-            React.createElement('td',null,React.createElement('select',{className:'input',value:it.supplier,onChange:e=>{const a=[...items];a[idx]={...a[idx],supplier:e.target.value};setItems(a);}},
-              suppliers.map(s=> React.createElement('option',{key:s.id,value:s.id},s.name))
-            ))
-          ))
-      ),
-      React.createElement('div',{className:'note'},'Подставь реальные прайсы — расчёты обновятся мгновенно.')
-    );
-  }
+    <div class="note">v2.0 • современный минимализм • тёмная тема • автономный файл без внешних библиотек • NF по умолчанию</div>
+  </div>
 
-  function App(){
-    const [theme,setTheme]=useSticky('theme',DEFAULTS.theme);
-    // Технология вынесена отдельно, но NF — дефолт
-    const [tech,setTech]=useSticky('tech',DEFAULTS.tech);
-    const profile = TECH[tech] || TECH.NF;
+  <script>
+    // ======= УТИЛИТЫ =======
+    const fmtInt = n => new Intl.NumberFormat('ru-RU').format(Math.round(n||0));
+    const fmtRub = n => new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}).format(Math.round(n||0));
+    const clamp = (v,min,max)=> Math.min(max, Math.max(min, isFinite(v)?v:0));
+    const $ = sel => document.querySelector(sel);
 
-    // База
-    const [apts,setApts]=useSticky('apts',DEFAULTS.apts);
-    const [pplPerApt,setPplPerApt]=useSticky('pplPerApt',DEFAULTS.pplPerApt);
-    const [lpdPerPerson,setLpdPerPerson]=useSticky('lpd',DEFAULTS.lpdPerPerson);
+    // ======= ДАННЫЕ =======
+    const TECH = {
+      NF:{kwhPerM3:0.4, reagentsRurPerM3:0.4, nfMembranePrice:20000, nfMembraneFrac:1/3, recovery:0.85},
+      RO:{kwhPerM3:0.8, reagentsRurPerM3:0.6, nfMembranePrice:25000, nfMembraneFrac:0.5, recovery:0.7}
+    };
+    let state = {
+      theme: (localStorage.getItem('theme')||'dark'),
+      tech: (localStorage.getItem('tech')||'NF'),
+      apts: +(localStorage.getItem('apts')||500),
+      pplPerApt: +(localStorage.getItem('pplPerApt')||3),
+      lpd: +(localStorage.getItem('lpd')||180),
+      occ: +(localStorage.getItem('occ')||0.95),
+      kh: +(localStorage.getItem('kh')||2.2),
+      ks: +(localStorage.getItem('ks')||1.15),
+      nfmod: +(localStorage.getItem('nfmod')||1),
+      nplus: (localStorage.getItem('nplus')!=='false'),
+      inflation: (localStorage.getItem('inflation')||'baseline'),
+      suppliers: [
+        {id:'ecvols',name:'Ecvols'}, {id:'clinvo',name:'Clinvo'}, {id:'gf',name:'GF-Shop'},
+        {id:'inox',name:'InoxPoint'}, {id:'stout',name:'Stout'}, {id:'other',name:'Другой'}
+      ],
+      items: [
+        {key:'nf',label:'НФ/RO-установка',price:185450,supplier:'ecvols'},
+        {key:'uf',label:'UF-блок',price:557977,supplier:'clinvo'},
+        {key:'uv',label:'УФ-установка',price:76800,supplier:'other'},
+        {key:'pump',label:'Насос',price:283929,supplier:'gf'},
+        {key:'carbon',label:'Колонна с углём',price:117720,supplier:'other'},
+        {key:'mineral',label:'Минерализатор',price:80000,supplier:'other'},
+        {key:'tank',label:'Емкость 5 м³',price:120000,supplier:'other'},
+        {key:'inox',label:'Трубопровод нерж (м)',price:1105,supplier:'inox'},
+        {key:'pex',label:'Трубопровод PEX-a (м)',price:399,supplier:'stout'},
+        {key:'plc',label:'ПЛК + датчики',price:250000,supplier:'other'},
+        {key:'install',label:'Монтаж/ПНР',price:850000,supplier:'other'},
+        {key:'room',label:'Работы по помещению, ₽/м²',price:8000,supplier:'other'},
+        {key:'design',label:'Проект + согласования',price:400000,supplier:'other'},
+      ],
+      fixed:{tanks:2, inoxM_base:400, pexM_base:1600},
+      roomModel:{baseArea:12, perNF:3.5, serviceCorridor:10, extraPer10m3h:4},
+      pipesModel:{inoxPerM2:1.5, pexPerM2:3.0},
+      laborModel:{baseHours:120, perUnitHours:6, perM2Hours:0.8, hourlyRate:1200},
+      opx:{loadFactor:0.35, tariffRurPerKwh:7.0, uvLampHours:9000, uvLampPrice:12000, uvLampsPerUnit:1, serviceY1:150000, unplannedPctY1:0.03},
+      inflCurves:{baseline:[4.0,4.2,4.0,3.8,3.8], optimistic:[3.5,3.7,3.5,3.3,3.3], conservative:[5.0,5.0,4.8,4.5,4.3]}
+    };
 
-    // К-ты/модули
-    const [occupancy,setOccupancy]=useSticky('occ',DEFAULTS.occupancy);
-    const [kh,setKh]=useSticky('kh',DEFAULTS.kh);
-    const [ks,setKs]=useSticky('ks',DEFAULTS.ks);
-    const [nfModuleM3h,setNfModuleM3h]=useSticky('nfmod',DEFAULTS.nfModuleM3h);
-    const [nPlus1,setNPlus1]=useSticky('nplus1',DEFAULTS.nPlus1);
+    // ======= ИНИЦИАЛИЗАЦИЯ UI =======
+    document.documentElement.setAttribute('data-theme', state.theme);
+    $('#themeBtn').textContent = state.theme==='dark'?'Тёмная':'Светлая';
+    $('#btnNF').classList.toggle('primary', state.tech==='NF');
+    $('#btnRO').classList.toggle('primary', state.tech==='RO');
 
-    // Стоимости
-    const [suppliers,setSuppliers]=useSticky('suppliers',DEFAULTS.suppliers);
-    const [items,setItems]=useSticky('items',DEFAULTS.items);
+    // Входные поля
+    $('#apts').value = state.apts;
+    $('#pplPerApt').value = state.pplPerApt;
+    $('#lpd').value = state.lpd;
+    $('#occ').value = state.occ;
+    $('#kh').value = state.kh;
+    $('#ks').value = state.ks;
+    $('#nfmod').value = state.nfmod;
+    $('#nplus').checked = state.nplus;
+    $('#inflation').value = state.inflation;
 
-    // Модели
-    const [fixed,setFixed]=useSticky('fixed',DEFAULTS.fixed);
-    const [roomModel,setRoomModel]=useSticky('roomModel',DEFAULTS.roomModel);
-    const [pipesModel,setPipesModel]=useSticky('pipesModel',DEFAULTS.pipesModel);
-    const [laborModel,setLaborModel]=useSticky('laborModel',DEFAULTS.laborModel);
+    // Поставщики-таблица
+    const tbody = document.querySelector('#priceTable tbody');
+    function renderPriceTable(){
+      tbody.innerHTML='';
+      state.items.forEach((it, idx)=>{
+        const tr = document.createElement('tr');
+        const td1 = document.createElement('td'); td1.textContent = it.label; tr.appendChild(td1);
+        const td2 = document.createElement('td');
+        const inp = document.createElement('input'); inp.type='number'; inp.value=it.price; inp.style.width='120px';
+        inp.addEventListener('input', ()=>{ it.price = parseFloat(inp.value||'0'); persist(); recalc();});
+        td2.appendChild(inp); tr.appendChild(td2);
+        const td3 = document.createElement('td');
+        const sel = document.createElement('select'); sel.style.width='160px';
+        state.suppliers.forEach(s=>{
+          const opt = document.createElement('option'); opt.value=s.id; opt.textContent=s.name; if (s.id===it.supplier) opt.selected=true; sel.appendChild(opt);
+        });
+        sel.addEventListener('change',()=>{ it.supplier = sel.value; persist(); });
+        td3.appendChild(sel); tr.appendChild(td3);
+        tbody.appendChild(tr);
+      });
+    }
+    renderPriceTable();
 
-    // OPEX/инфляция
-    const [opx,setOpx]=useSticky('opx',DEFAULTS.opx);
-    const [inflationCurves,setInflationCurves]=useSticky('inflationCurves',DEFAULTS.inflationCurves);
+    // ======= ЛОГИКА РАСЧЁТА =======
+    function persist(){
+      localStorage.setItem('theme', state.theme);
+      localStorage.setItem('tech', state.tech);
+      ['apts','pplPerApt','lpd','occ','kh','ks','nfmod','nplus','inflation'].forEach(k=>{
+        localStorage.setItem(k, state[k]);
+      });
+    }
 
-    const calc = useMemo(()=>{
-      const population = apts * pplPerApt * occupancy;
-      const m3PerDay = population * lpdPerPerson / 1000;
+    function recalc(){
+      const profile = TECH[state.tech] || TECH.NF;
+      const population = state.apts * state.pplPerApt * state.occ;
+      const m3PerDay = population * state.lpd / 1000;
       const m3PerHourAvg = m3PerDay / 24;
-      const m3PerHourPeak = m3PerHourAvg * kh;
-      const requiredM3h = m3PerHourPeak * ks;
+      const m3PerHourPeak = m3PerHourAvg * state.kh;
+      const requiredM3h = m3PerHourPeak * state.ks;
       const lPerHour = requiredM3h * 1000;
 
-      const ceil=(x)=>Math.ceil(x);
-      const nfCount=ceil(requiredM3h / Math.max(1,nfModuleM3h));
-      const ufCount=ceil(requiredM3h / 10);
-      const uvRaw=ceil(requiredM3h / 10);
-      const pumpRaw=ceil(requiredM3h / 10);
-      const uvCount=nPlus1?Math.max(2,uvRaw):uvRaw;
-      const pumpCount=nPlus1?Math.max(2,pumpRaw):pumpRaw;
-      const carbonCount=ceil(requiredM3h / 2);
+      const ceil = x => Math.ceil(x);
+      const nfCount = ceil(requiredM3h / Math.max(1, state.nfmod));
+      const ufCount = ceil(requiredM3h / 10);
+      const uvRaw = ceil(requiredM3h / 10);
+      const pumpRaw = ceil(requiredM3h / 10);
+      const uvCount = state.nplus ? Math.max(2, uvRaw) : uvRaw;
+      const pumpCount = state.nplus ? Math.max(2, pumpRaw) : pumpRaw;
+      const carbonCount = ceil(requiredM3h / 2);
 
-      const area = roomModel.baseArea + roomModel.perNF*nfCount + roomModel.serviceCorridor + roomModel.extraPer10m3h*(requiredM3h/10);
-      const inoxM = fixed.inoxM_base + pipesModel.inoxPerM2*area;
-      const pexM  = fixed.pexM_base  + pipesModel.pexPerM2*area;
+      const area = state.roomModel.baseArea + state.roomModel.perNF*nfCount + state.roomModel.serviceCorridor + state.roomModel.extraPer10m3h*(requiredM3h/10);
+      const inoxM = state.fixed.inoxM_base + state.pipesModel.inoxPerM2*area;
+      const pexM  = state.fixed.pexM_base  + state.pipesModel.pexPerM2*area;
 
-      const laborHours = laborModel.baseHours + laborModel.perUnitHours*(nfCount+ufCount+uvCount+pumpCount+carbonCount) + laborModel.perM2Hours*area;
-      const laborCost = laborHours * laborModel.hourlyRate;
+      const laborHours = state.laborModel.baseHours + state.laborModel.perUnitHours*(nfCount+ufCount+uvCount+pumpCount+carbonCount) + state.laborModel.perM2Hours*area;
+      const laborCost = laborHours * state.laborModel.hourlyRate;
 
-      const price = Object.fromEntries(items.map(i=>[i.key,i.price]));
+      const price = Object.fromEntries(state.items.map(i=>[i.key,i.price]));
       const capex = price.nf*nfCount + price.uf*ufCount + price.uv*uvCount + price.pump*pumpCount + price.carbon*carbonCount +
-                    price.mineral*1 + price.tank*fixed.tanks + price.inox*inoxM + price.pex*pexM +
+                    price.mineral*1 + price.tank*state.fixed.tanks + price.inox*inoxM + price.pex*pexM +
                     price.plc*1 + price.install*1 + price.room*area + price.design*1 + laborCost;
 
-      // OPEX
-      const annualM3 = requiredM3h * 24 * 365 * opx.loadFactor;
+      const annualM3 = requiredM3h * 24 * 365 * state.opx.loadFactor;
       const energyKwh = profile.kwhPerM3 * annualM3;
-      const energyCost = energyKwh * opx.tariffRurPerKwh;
+      const energyCost = energyKwh * state.opx.tariffRurPerKwh;
       const reagents = profile.reagentsRurPerM3 * annualM3;
       const membranes = profile.nfMembranePrice * nfCount * profile.nfMembraneFrac;
-      const uvHoursYear = 8760 * opx.loadFactor;
-      const uvReplPerUnitPerYear = Math.max(0, uvHoursYear / Math.max(1,opx.uvLampHours));
-      const uvCost = uvCount * opx.uvLampsPerUnit * uvReplPerUnitPerYear * opx.uvLampPrice;
-      const service = opx.serviceY1;
-      const unplanned = capex * (opx.unplannedPctY1||0.03);
+      const uvHoursYear = 8760 * state.opx.loadFactor;
+      const uvReplPerUnitPerYear = Math.max(0, uvHoursYear / Math.max(1,state.opx.uvLampHours));
+      const uvCost = uvCount * state.opx.uvLampsPerUnit * uvReplPerUnitPerYear * state.opx.uvLampPrice;
+      const service = state.opx.serviceY1;
+      const unplanned = capex * (state.opx.unplannedPctY1||0.03);
 
-      const infl = inflationCurves[opx.inflation] || inflationCurves.baseline;
+      const infl = state.inflCurves[state.inflation] || state.inflCurves.baseline;
       const y1 = energyCost + reagents + membranes + uvCost + service + unplanned;
       const inflate=(base,n)=>{ let a=base; for(let i=0;i<n;i++) a*=1+(infl[i]||infl[infl.length-1])/100; return a; };
       const years=[y1, inflate(y1,1), inflate(y1,2), inflate(y1,3), inflate(y1,4)];
       const opex5y = years.reduce((a,b)=>a+b,0);
 
-      return {population,requiredM3h,lPerHour,area,inoxM,pexM,laborHours,capex,years,opex5y,
-              nfCount,ufCount,uvCount,pumpCount,carbonCount};
-    },[apts,pplPerApt,lpdPerPerson,occupancy,kh,ks,nfModuleM3h,nPlus1,items,fixed,roomModel,pipesModel,laborModel,opx,tech]);
+      // Вывод
+      $('#m3h').textContent = (requiredM3h||0).toFixed(2);
+      $('#lph').textContent = fmtInt(lPerHour);
+      $('#area').textContent = (area||0).toFixed(2);
+      $('#inox').textContent = fmtInt(inoxM);
+      $('#pex').textContent  = fmtInt(pexM);
+      $('#labor').textContent= fmtInt(laborHours);
+      $('#capex').textContent= fmtRub(capex);
+      $('#opex5').textContent= fmtRub(opex5y);
+      $('#tco5').textContent = fmtRub(capex + opex5y);
 
-    useEffect(()=>{
-      pushParams({apts,pplPerApt,lpd:lpdPerPerson,occ:occupancy,kh,ks,nfmod:nfModuleM3h,theme,tech});
-      document.documentElement.setAttribute('data-theme', theme);
-    },[apts,pplPerApt,lpdPerPerson,occupancy,kh,ks,nfModuleM3h,theme,tech]);
+      // BOM
+      const bom = document.getElementById('bom');
+      bom.innerHTML = '';
+      const addRow=(name,val)=>{ const tr=document.createElement('tr'); const td1=document.createElement('td'); td1.textContent=name; const td2=document.createElement('td'); td2.textContent=val; tr.append(td1,td2); bom.appendChild(tr); };
+      addRow('NF/RO модули', nfCount);
+      addRow('UF блоки (~10 м³/ч)', ufCount);
+      addRow('УФ установки (~10 м³/ч)', uvCount);
+      addRow('Насосы (~10 м³/ч)', pumpCount);
+      addRow('Колонны с углём (~2 м³/ч)', carbonCount);
+      addRow('Емкости 5 м³ (шт)', state.fixed.tanks);
+    }
 
-    return React.createElement('div',{className:'wrap'},
-      React.createElement('div',{className:'header'},
-        React.createElement('div',{className:'brand'},
-          React.createElement('svg',{className:'logo',viewBox:'0 0 64 64'},React.createElement('rect',{width:64,height:64,rx:12,fill:'#0b1020'}),React.createElement('path',{d:'M32 8c8 10 16 18 16 28a16 16 0 1 1-32 0c0-10 8-18 16-28z',fill:'var(--accent)'})),
-          React.createElement('h1',{className:'h1'},'Калькулятор водоочистки v2.0')
-        ),
-        React.createElement('div',{className:'row-inline'},
-          React.createElement(Theme,{theme,setTheme})
-        )
-      ),
+    // ======= СЛУШАТЕЛИ =======
+    $('#themeBtn').addEventListener('click', ()=>{
+      state.theme = (state.theme==='dark'?'light':'dark');
+      document.documentElement.setAttribute('data-theme', state.theme);
+      $('#themeBtn').textContent = state.theme==='dark'?'Тёмная':'Светлая';
+      persist();
+    });
+    $('#btnNF').addEventListener('click', ()=>{ state.tech='NF'; $('#btnNF').classList.add('primary'); $('#btnRO').classList.remove('primary'); persist(); recalc(); });
+    $('#btnRO').addEventListener('click', ()=>{ state.tech='RO'; $('#btnRO').classList.add('primary'); $('#btnNF').classList.remove('primary'); persist(); recalc(); });
 
-      React.createElement('section',{className:'card'},
-        React.createElement('div',{className:'h2'},'Быстрый ввод'),
-        React.createElement('div',{className:'row-inline'},
-          React.createElement('span',null,'Технология:'),
-          React.createElement('div',{className:'toggle'},
-            React.createElement('button',{className: tech==='NF'?'primary':'', onClick:()=>setTech('NF')},'NF'),
-            React.createElement('button',{className: tech==='RO'?'primary':'', onClick:()=>setTech('RO')},'RO'),
-            React.createElement('span',{className:'hint'},'Используем NF (рекомендуется), RO доступен для сравнения')
-          )
-        ),
-        React.createElement(NumberInput,{label:'Квартиры, шт',value:apts,onChange:setApts,step:1,min:1}),
-        React.createElement(NumberInput,{label:'Людей на квартиру, чел',value:pplPerApt,onChange:setPplPerApt,step:0.1,min:0.1,max:10}),
-        React.createElement(NumberInput,{label:'Потребление на человека, л/сут',value:lpdPerPerson,onChange:setLpdPerPerson,step:1,min:1,max:1000})
-      ),
+    ['apts','pplPerApt','lpd','occ','kh','ks','nfmod'].forEach(id=>{
+      const el = document.getElementById(id);
+      el.addEventListener('input', ()=>{
+        let v = parseFloat(el.value||'0');
+        if (id==='occ') v = clamp(v,0.1,1);
+        state[id] = v;
+        persist(); recalc();
+      });
+    });
+    $('#nplus').addEventListener('change', (e)=>{ state.nplus = e.target.checked; persist(); recalc(); });
+    $('#inflation').addEventListener('change', (e)=>{ state.inflation = e.target.value; persist(); recalc(); });
 
-      React.createElement('section',{className:'card'},
-        React.createElement('div',{className:'h2'},'Результаты'),
-        React.createElement('div',{className:'grid'},
-          React.createElement('div',{className:'tile'},React.createElement('div',{className:'label'},'Мощность, м³/ч'),React.createElement('div',{className:'value'},fmt2(calc.requiredM3h))),
-          React.createElement('div',{className:'tile'},React.createElement('div',{className:'label'},'Мощность, л/ч'),React.createElement('div',{className:'value'},fmtInt(calc.lPerHour))),
-          React.createElement('div',{className:'tile'},React.createElement('div',{className:'label'},'Площадь, м²'),React.createElement('div',{className:'value'},fmt2(calc.area))),
-          React.createElement('div',{className:'tile'},React.createElement('div',{className:'label'},'Нерж. трубы, м'),React.createElement('div',{className:'value'},fmtInt(calc.inoxM))),
-          React.createElement('div',{className:'tile'},React.createElement('div',{className:'label'},'PEX‑a трубы, м'),React.createElement('div',{className:'value'},fmtInt(calc.pexM))),
-          React.createElement('div',{className:'tile span'},React.createElement('div',{className:'label'},'Часы работ (оценка)'),React.createElement('div',{className:'value'},fmtInt(calc.laborHours)))
-        )
-      ),
+    $('#printBtn').addEventListener('click', ()=> window.print());
+    $('#copyBtn').addEventListener('click', ()=>{
+      const sp = new URLSearchParams({apts:state.apts,ppl:state.pplPerApt,lpd:state.lpd,occ:state.occ,kh:state.kh,ks:state.ks,nfmod:state.nfmod,tech:state.tech,infl:state.inflation,theme:state.theme});
+      navigator.clipboard.writeText(location.origin+location.pathname+'?'+sp.toString());
+    });
+    $('#resetBtn').addEventListener('click', ()=>{
+      localStorage.clear(); location.reload();
+    });
 
-      React.createElement('section',{className:'card'},
-        React.createElement('div',{className:'h2'},'Стоимость'),
-        React.createElement('div',{className:'grid'},
-          React.createElement('div',{className:'tile'},React.createElement('div',{className:'label'},'CAPEX, ₽'),React.createElement('div',{className:'value'},fmtRub(calc.capex))),
-          React.createElement('div',{className:'tile'},React.createElement('div',{className:'label'},'OPEX 5 лет, ₽'),React.createElement('div',{className:'value'},fmtRub(calc.opex5y))),
-          React.createElement('div',{className:'tile span'},React.createElement('div',{className:'label'},'TCO 5 лет, ₽'),React.createElement('div',{className:'value'},fmtRub(calc.capex+calc.opex5y)))
-        ),
-        React.createElement('div',{className:'actions'},
-          React.createElement('button',{className:'primary',onClick:()=>window.print()},'PDF/Печать'),
-          React.createElement('button',{onClick:()=>{navigator.clipboard.writeText(location.href)}},'Скопировать ссылку'),
-          React.createElement('button',{onClick:()=>{localStorage.clear(); location.reload();}},'Сброс')
-        ),
-        React.createElement('div',{className:'note'},'Инфляция: базовая/оптимистичная/консервативная — зашита в коде. По желанию добавим загрузку из файла.')
-      ),
-
-      React.createElement(Suppliers,{suppliers,setSuppliers,items,setItems}),
-
-      React.createElement('section',{className:'card'},
-        React.createElement('div',{className:'h2'},'Состав оборудования (шт)'),
-        React.createElement('table',null,
-          React.createElement('thead',null,React.createElement('tr',null,React.createElement('th',null,'Позиция'),React.createElement('th',null,'Количество'))),
-          React.createElement('tbody',null,
-            React.createElement('tr',null,React.createElement('td',null,'NF/RO модули'),React.createElement('td',null,calc.nfCount)),
-            React.createElement('tr',null,React.createElement('td',null,'UF блоки (~10 м³/ч)'),React.createElement('td',null,calc.ufCount)),
-            React.createElement('tr',null,React.createElement('td',null,'УФ установки (~10 м³/ч)'),React.createElement('td',null,calc.uvCount)),
-            React.createElement('tr',null,React.createElement('td',null,'Насосы (~10 м³/ч)'),React.createElement('td',null,calc.pumpCount)),
-            React.createElement('tr',null,React.createElement('td',null,'Колонны с углём (~2 м³/ч)'),React.createElement('td',null,calc.carbonCount)),
-            React.createElement('tr',null,React.createElement('td',null,'Емкости 5 м³ (шт)'),React.createElement('td',null,DEFAULTS.fixed.tanks))
-          )
-        )
-      ),
-
-      React.createElement('div',{className:'note'},'v2.0 • современный минимализм • тёмная тема • один файл без сервис‑воркера • NF режим по умолчанию, RO — опционально')
-    );
-  }
-
-  ReactDOM.createRoot(document.getElementById('app')).render(React.createElement(App));
-})();
-</script>
+    // Старт
+    recalc();
+  </script>
 </body>
 </html>
